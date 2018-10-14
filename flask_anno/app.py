@@ -217,15 +217,37 @@ class addMissionRandom(Resource):
         args = parser.parse_args()
         user = json.loads(args['user'])
         count = args['count']
-        add_mission_random(count,user)
+        add_mission_random(count, user)
         return 1
+
+
 api.add_resource(addMissionRandom, '/api/addMissionRandom')
 
+
 class fetchMission(Resource):
-    def get(self,id):
-        data=fetch_mission(id)
+    def get(self, id):
+        data = fetch_mission(id)
         return data
+
+
 api.add_resource(fetchMission, '/api/fetchMission/<int:id>')
 
+
+class Register(Resource):
+    def post(self):
+        parser.add_argument('account')
+        parser.add_argument('password')
+        parser.add_argument('name')
+        args = parser.parse_args()
+        account = args['account']
+        password = args['password']
+        name = args['name']
+        res = register(account, password, name)
+        response={}
+        response['status']=res
+        return response
+api.add_resource(Register, '/api/register')
+
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True,host='0.0.0.0')

@@ -208,7 +208,6 @@ def select_user(id):
     sql = '''select * from user where id={0}
     '''.format(id)
     user = {}
-    mission = {}
     user['datas'] = []
 
     try:
@@ -257,6 +256,7 @@ def select_user(id):
 
         user['missionCount'] = count
         user['missionComplete'] = comp
+        user['mission']=select_mission_cur(id)
         return user
     except Exception as e:
         conn.rollback()  # 回滚
@@ -312,33 +312,37 @@ def select_mission_cur(id):
 
         return tmp
     except Exception as e:
-        sql2 = '''select * from mission where userID={0}
-'''.format(id)
-        cursor.execute(sql2)
-        data = list(cursor.fetchone())
-        tmp = {}
-        if data[5]:
-            tmp['isAnno'] = '已标注'
-
-        else:
-            tmp['isAnno'] = '未标注'
-
-        tmp['id'] = data[1]
-        tmp['dangerValue'] = data[2]
-        tmp['rely'] = data[3]
-        tmp['confirm'] = data[4]
-        tmp['trust'] = data[5]
-        tmp['aim'] = data[6]
-        tmp['type'] = data[7]
-        tmp['timeliness'] = data[8]
+        logging.exception(e)
         try:
-            tmp['time'] = data[9].strftime('%Y-%m-%d %H:%M:%S')
-        except:
-            tmp['time'] = data[9]
-        content = select_Avg(data[1])
-        tmp.update(content)
+            sql2 = '''select * from mission where userID={0}
+              '''.format(id)
+            cursor.execute(sql2)
+            data = list(cursor.fetchone())
+            tmp = {}
+            if data[5]:
+                tmp['isAnno'] = '已标注'
 
-        return tmp
+            else:
+                tmp['isAnno'] = '未标注'
+
+            tmp['id'] = data[1]
+            tmp['dangerValue'] = data[2]
+            tmp['rely'] = data[3]
+            tmp['confirm'] = data[4]
+            tmp['trust'] = data[5]
+            tmp['aim'] = data[6]
+            tmp['type'] = data[7]
+            tmp['timeliness'] = data[8]
+            try:
+                tmp['time'] = data[9].strftime('%Y-%m-%d %H:%M:%S')
+            except:
+                tmp['time'] = data[9]
+            content = select_Avg(data[1])
+            tmp.update(content)
+
+            return tmp
+        except Exception as e:
+            logging.exception(e)
 
 
 def find_missionID(id):
@@ -656,3 +660,16 @@ def select_Avg(id):
     except Exception as e:
         print('select_avg')
         logging.exception(e)
+
+
+def register(account,password,name):
+    sql='''insert into user(account,password,name,type)values ({0},{1},{2},'user')
+    '''.format(account,password,name)
+    conn = connect()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(sql)
+        conn.commit()
+        return 1
+    except Exception as e:
+        return 0
