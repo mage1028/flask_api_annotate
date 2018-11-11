@@ -140,6 +140,12 @@ class CurrentUser(Resource):
 
 api.add_resource(CurrentUser, '/api/currentuser/<int:id>')
 
+class CurrentUserAll(Resource):
+    def get(self, id):
+        user = select_users_all(id)
+        return user
+
+api.add_resource(CurrentUserAll, '/api/currentuserAll/<int:id>')
 
 class CurrentMission(Resource):
     def get(self, id):
@@ -158,6 +164,14 @@ class Next(Resource):
 
 
 api.add_resource(Next, '/api/next/<int:id>')
+
+class Last(Resource):
+    def get(self, id):
+        last(id)
+        return 1
+
+
+api.add_resource(Last, '/api/last/<int:id>')
 
 
 class Submit(Resource):
@@ -242,7 +256,9 @@ class Register(Resource):
         account = args['account']
         password = args['password']
         name = args['name']
+        print(account,password,name)
         res = register(account, password, name)
+
         response={}
         response['status']=res
         return response

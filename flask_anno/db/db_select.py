@@ -7,8 +7,6 @@ import json
 #     connect = pymysql.connect(host='localhost', user='root', password='', db='annotate2', port=3306,
 #                               charset='utf8')
 #     return connect
-
-
 def connect():
     connect = pymysql.connect(host='192.168.100.103', user='root', password='root', db='fakenewsb', port=3306,
                               charset='utf8')
@@ -253,7 +251,7 @@ def select_user(id):
                 tmp['time'] = i[9]
 
             tmp.update(select_Avg(i[1]))
-            user['datas'].append(tmp)
+            # user['datas'].append(tmp)
             count += 1
 
         user['missionCount'] = count
@@ -265,6 +263,79 @@ def select_user(id):
         conn.close()
         print(e)
 
+
+
+def select_users_all(id):
+    '''
+
+    :param id: id
+    :return:
+    {'id':,
+    'name':,
+    'account':,
+    'type':,
+    'mission':{}, mission missionCount missionComplete
+    }
+    '''
+    conn = connect()
+    cursor = conn.cursor()
+    sql = '''select * from user where id={0}
+    '''.format(id)
+    user = {}
+    user['datas'] = []
+
+    try:
+        cursor.execute(sql)
+        res = cursor.fetchone()
+        user['id'] = id
+        user['name'] = res[1]
+        user['account'] = res[3]
+        user['type'] = res[2]
+    except Exception as e:
+        conn.rollback()  # 回滚
+        conn.close()
+        logging.exception(e, sql)
+    sql = '''select * from mission where userID={0}
+    '''.format(id)
+    try:
+        cursor.execute(sql)
+        res = cursor.fetchall()
+        count = 0
+        comp = 0
+        for i in res:
+            tmp = {}
+            if i[3]:
+                comp += 1
+                tmp['isAnno'] = '已标注'
+
+            else:
+                tmp['isAnno'] = '未标注'
+
+            tmp['id'] = i[1]
+            tmp['dangerValue'] = i[2]
+            tmp['rely'] = i[3]
+            tmp['confirm'] = i[4]
+            tmp['trust'] = i[5]
+            tmp['aim'] = i[6]
+            tmp['type'] = i[7]
+            tmp['timeliness'] = i[8]
+            try:
+                tmp['time'] = i[9].strftime('%Y-%m-%d %H:%M:%S')
+            except:
+                tmp['time'] = i[9]
+
+            tmp.update(select_Avg(i[1]))
+            user['datas'].append(tmp)
+            count += 1
+
+        user['missionCount'] = count
+        user['missionComplete'] = comp
+        user['mission']=select_mission_cur(id)
+        return user
+    except Exception as e:
+        conn.rollback()  # 回滚
+        conn.close()
+        print(e)
 
 def selectID_Weibo(id):
     sql = '''select * from annoText where id={0}
@@ -378,6 +449,19 @@ def select_next(id, missionID):
         conn.close()
         logging.exception(e)
 
+def select_last(id, missionID):
+    sql = '''SELECT missionID FROM mission WHERE userID={1} and missionID < {0} ORDER BY missionID DESC 
+    '''.format(missionID, id)
+    conn = connect()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(sql)
+        data = cursor.fetchone()[0]
+        return data
+    except Exception as e:
+        conn.rollback()  # 回滚
+        conn.close()
+        logging.exception(e)
 
 def next(userID):
     missionID = int(find_missionID(userID))
@@ -402,6 +486,28 @@ def next(userID):
         conn.close()
         logging.exception(e)
 
+def last(userID):
+    missionID = int(find_missionID(userID))
+    print(missionID)
+
+    sql = '''update mission set flag=0 where userID={0} and missionID={1}
+    '''.format(userID, missionID)
+    conn = connect()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(sql)
+        conn.commit()
+
+        new_id = select_last(userID, missionID)
+        sql2 = '''update mission set flag=1 where userID={0} and missionID={1}
+        '''.format(userID, new_id)
+        cursor.execute(sql2)
+        conn.commit()
+
+    except Exception as e:
+        conn.rollback()  # 回滚
+        conn.close()
+        logging.exception(e)
 
 def select_avg_anno(id):
     '''
@@ -664,9 +770,9 @@ def select_Avg(id):
         logging.exception(e)
 
 
-def register(account,password,name):
-    sql='''insert into user(account,password,name,type)values ({0},{1},{2},'user')
-    '''.format(account,password,name)
+def register(a,b,c):
+    sql='''insert into user(account,password,name,type)values ('{0}','{1}','{2}','user')
+    '''.format(a,b,c)
     conn = connect()
     cursor = conn.cursor()
     try:
@@ -674,4 +780,6 @@ def register(account,password,name):
         conn.commit()
         return 1
     except Exception as e:
+        logging.exception(e)
+        print(sql)
         return 0
